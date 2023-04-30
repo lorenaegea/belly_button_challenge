@@ -6,6 +6,7 @@ function buildBar(sample) {
 
         // Extract the "samples" array from the data
         let samples = data.samples;
+
         // Filter the samples array => return the sample object with ID matching selected sample ID
         let resultArray = samples.filter(sampleObj => sampleObj.id == sample);
         let result = resultArray[0];
@@ -35,7 +36,54 @@ function buildBar(sample) {
         // Use Plotly to create the bar chart
         Plotly.newPlot("bar", barData, barLayout);
     });
-}
+};
+
+// Define a function to build the charts for a given sample ID
+function buildBubble(sample) {
+
+    // retrieve the JSON data from "samples.json" using the D3 library
+    d3.json("samples.json").then((data) => {
+
+        // Extract the "samples" array from the data
+        let samples = data.samples;
+
+        // Filter the samples array => return the sample object with ID matching selected sample ID
+        let resultArray = samples.filter(sampleObj => sampleObj.id == sample);
+        let result = resultArray[0];
+
+        // Extract the OTU IDs, labels, sample values, and individual ID from the sample object
+        let otu_ids = result.otu_ids;
+        let otu_labels = result.otu_labels;
+        let sample_values = result.sample_values;
+        let individual_id = result.id;
+        
+        // Create the bubble chart trace data array
+        let bubbleData = [{
+            x: otu_ids,
+            y: sample_values,
+            text: otu_labels,
+            mode: 'markers',
+                marker: {
+                    size: sample_values,
+                    color: otu_ids,
+                    opacity: 0.8
+                },
+            type: 'scatter'
+        }];
+
+        // Create the bar chart layout object
+        let bubbleLayout = {
+            title: "Amount of Each Bacteria Culture Found in Individual " + `${individual_id}`,
+            xaxis: {
+                title: 'OTU ID'
+            },
+            margin: { t: 30, l: 150 }
+        };
+        
+        // Use Plotly to create the bar chart
+        Plotly.newPlot("bubble", bubbleData, bubbleLayout);
+    });
+};
 
 // Define a function to build the demographic information section based on the selected ID
 function buildDemoInfo(sample) {
@@ -77,12 +125,15 @@ function init() {
             selector.append("option").text(sampleNames[i]).property("value", sampleNames[i]);
         };
   
-        // Use the first sample from the list to build the initial plots
+        // Use the first sample from the list to build the initial bar plots
         let firstSample = sampleNames[0];
         buildBar(firstSample);
 
         // Use the first sample from the list to populate the initial Demographic Info panel
         buildDemoInfo(firstSample);
+
+        // Use the first sample from the list to build the initial bubble plots
+        buildBubble(firstSample);
     });
 };
 
@@ -91,7 +142,7 @@ init();
 
 let selector = d3.select("#selDataset");
 
-// Define a function to update the plot based on selected ID
+// Define a function to update the bar plot based on selected ID
 function updateBar() 
 {
     // Access value property from the selected ID
@@ -121,7 +172,44 @@ function updateBar()
         let newTitle = "Top 10 Bacteria Cultures Found in Individual " + `${individual_id}`;
         Plotly.relayout("bar", {title: newTitle});
     })
-};   
+};
+
+// Define a function to update the bubble plot based on selected ID
+function updateBubble() {
+    
+    // Access value property from the selected ID
+    let id_value = selector.property("value");
+
+    // retrieve the JSON data from "samples.json" using the D3 library
+    d3.json("samples.json").then((data) => {
+
+        // Extract the "samples" array from the data
+        let samples = data.samples;
+
+        // Filter the samples array => return the sample object with ID matching selected sample ID
+        let resultArray = samples.filter(sampleObj => sampleObj.id == id_value);
+        let result = resultArray[0];
+
+        // Extract the OTU IDs, labels, sample values, and individual ID from the sample object
+        let otu_ids = result.otu_ids;
+        let sample_values = result.sample_values;
+        let otu_labels = result.otu_labels;
+        let individual_id = result.id;
+    
+        // Update the chart trace data
+        Plotly.restyle("bubble", "x", [otu_ids]);
+        Plotly.restyle("bubble", "y", [sample_values]);
+        Plotly.restyle("bubble", "text", [otu_labels]);
+        Plotly.restyle("bubble", "marker.size", [sample_values]);
+        Plotly.restyle("bubble", "marker.color", [otu_ids]);
+        Plotly.restyle("bubble", "marker.opacity", 0.8);
+        
+        // Update the chart layout with the selected ID
+        let newTitle = "Amount of Each Bacteria Culture Found in Individual " + `${individual_id}`;
+        Plotly.relayout("bubble", {title: newTitle});
+        
+    });
+};
 
 // Update the demographic information section based on the selected ID
 function updateDemoInfo() {
@@ -153,5 +241,6 @@ function updateDemoInfo() {
 // Attach the updateBar and updateDemoInfo functions to the dropdown's change event
 d3.selectAll("#selDataset").on("change", function() {
     updateDemoInfo();
-    updateBar();});
-
+    updateBar();
+    updateBubble()
+});
