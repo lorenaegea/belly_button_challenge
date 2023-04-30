@@ -71,7 +71,7 @@ function buildBubble(sample) {
             type: 'scatter'
         }];
 
-        // Create the bar chart layout object
+        // Create the bubble chart layout object
         let bubbleLayout = {
             title: "Amount of Each Bacteria Culture Found in Individual " + `${individual_id}`,
             xaxis: {
@@ -80,9 +80,61 @@ function buildBubble(sample) {
             margin: { t: 30, l: 150 }
         };
         
-        // Use Plotly to create the bar chart
+        // Use Plotly to create the bubble chart
         Plotly.newPlot("bubble", bubbleData, bubbleLayout);
     });
+};
+
+function buildGauge(sample) {
+    
+    // retrieve the JSON data from "samples.json" using the D3 library
+    d3.json("samples.json").then((data) => {
+
+        // Extract the "samples" array from the data
+        let metadata = data.metadata;
+
+        // Filter the samples array => return the sample object with ID matching selected sample ID
+        let resultArray = metadata.filter(sampleObj => sampleObj.id == sample);
+        let result = resultArray[0];
+
+        // Extract the wash frequency, and individual ID from the sample object
+        let wash_frequency = result.wfreq;
+        let individual_id = result.id;
+
+        // Create the gauge chart trace data array
+        let gaugeData = [{
+            type: "indicator",
+            value: wash_frequency,
+            mode: "gauge+number",
+            title: { 
+                text: `<b>Individual ${individual_id} Belly Button Washing Frequency</b><br>Scrubs per Week`,
+                font: {size: 15}
+            }, 
+            gauge: {
+                axis: { range: [0, 9] },
+                bar: { color: "rgba(103, 0, 13, 1)" },
+                steps: [
+                    { range: [0, 1], color: "rgba(217, 217, 217, 0.7)" },
+                    { range: [1, 2], color: "rgba(254, 229, 217, 0.7)" },
+                    { range: [2, 3], color: "rgba(252, 187, 161, 0.7)" },
+                    { range: [3, 4], color: "rgba(252, 146, 114, 0.7)" },
+                    { range: [4, 5], color: "rgba(251, 106, 74, 0.7)" },
+                    { range: [5, 6], color: "rgba(239, 59, 44, 0.7)" },
+                    { range: [6, 7], color: "rgba(203, 24, 29, 0.7)" },
+                    { range: [7, 8], color: "rgba(165, 15, 21, 0.7)" },
+                    { range: [8, 9], color: "rgba(103, 0, 13, 0.7)" }
+                ]
+            }
+        }];
+
+        var gaugeLayout = {
+            width: 500,
+            height: 400,
+            margin: { t: 25, r: 25, l: 25, b: 25 }
+        };
+          
+        Plotly.newPlot('gauge', gaugeData, gaugeLayout);
+});
 };
 
 // Define a function to build the demographic information section based on the selected ID
@@ -134,6 +186,9 @@ function init() {
 
         // Use the first sample from the list to build the initial bubble plots
         buildBubble(firstSample);
+
+        // Use the first sample from the list to build the initial gauge plots
+        buildGauge(firstSample);
     });
 };
 
@@ -211,6 +266,32 @@ function updateBubble() {
     });
 };
 
+// Define a function to update the gauge plot based on selected ID
+function updateGauge() {
+    
+    // Access value property from the selected ID
+    let id_value = selector.property("value");
+
+    // retrieve the JSON data from "samples.json" using the D3 library
+    d3.json("samples.json").then((data) => {
+
+        // Extract the "samples" array from the data
+        let metadata = data.metadata;
+
+        // Filter the samples array => return the sample object with ID matching selected sample ID
+        let resultArray = metadata.filter(sampleObj => sampleObj.id == id_value);
+        let result = resultArray[0];
+
+        // Extract the wash frequency, and individual ID from the sample object
+        let wash_frequency = result.wfreq;
+        let individual_id = result.id;
+
+        // Update the chart trace data
+        Plotly.restyle("gauge", "value", [wash_frequency]);
+        Plotly.restyle("gauge", "title.text", `<b>Individual ${individual_id} Belly Button Washing Frequency</b><br>Scrubs per Week`);
+});
+};
+
 // Update the demographic information section based on the selected ID
 function updateDemoInfo() {
 
@@ -242,5 +323,6 @@ function updateDemoInfo() {
 d3.selectAll("#selDataset").on("change", function() {
     updateDemoInfo();
     updateBar();
-    updateBubble()
+    updateBubble();
+    updateGauge()
 });
